@@ -1,0 +1,348 @@
+﻿常见软件体系结构
+B/S  浏览器服务器   C/S客户端服务器
+web资源
+静态资源 html
+动态资源 jsp/servlet
+静态资源和动态资源的区别
+客户端如果请求的是静态资源，服务器会把静态资源内容响应给客户端 若请求的是动态网页，服务器会先把动态网页
+转换成静态网页，再将转换后的静态网页响应给客户端
+访问web资源 输入URL
+协议名://域名:端口/路径
+
+web服务器
+作用 接收客户端的请求，给客户端做出响应
+对于javaweb程序 还需要有jsp/servlet容器，这些容器基本功能是把动态资源装换成静态资源，还有其他功能
+Tomcat（Apache）
+JBoss（RedHat红帽）
+GlassFish（Oracle）
+Resin（Caucho）
+Weblogic（Oracle）
+Websphere（IBM）
+Refer请求头  能够知道请求来自哪个页面，但是如果在地址栏输入地址，就没有Refer请求头了
+还能够做统计工作  防盗链
+
+请求协议（get请求没有响应体 post请求有）
+请求行
+多个请求体信息，头名称：头值
+空行
+请求体
+
+
+
+响应协议
+格式
+响应首行
+响应头信息
+空行
+响应体
+
+Server:Apache-Coyote/1.1 服务器的版本信息
+Content-Type:text/html;charset=utf-8 响应体使用的编码utf-8
+Content-Lengh:724 响应体为724字节
+set-Cookie  响应给客户端的Cookie
+Date 响应的时间
+
+
+
+响应码接收
+200  请求成功
+404  请求的资源没有找到
+500  请求资源找到了，但服务器内部出现了错误
+302  重定向，表示服务器要求浏览器重新再发一个请求，服务器会发送一个响应头Location，它指定了新请求的URL地址
+304  Last-Modified 最后修改的时间
+     if-Modified-Since  把上次请求的index.html的最后修改时间还给服务器
+作用 比较if-Modified-Since的时间与文件真实的时间一样时，服务器会响应304，而且不会有响应正文，表示浏览器缓存的就是最新版本
+
+其它响应头
+告诉浏览器不要缓存的响应头
+Expires：-1   过期时间  -1表示瞬间过期
+Cache-Control :no-cache
+Pragma：no-cache
+两个是为了兼容Http1.0 1.1
+
+自动刷新响应头
+浏览器会在3秒之后请求www.baidu.com
+Refresh:3;url=http://www.baidu.com
+
+HTML中指定响应头
+使用<meta http-equiv="" content="">指定响应头
+
+
+
+
+
+Tomcat配置外部应用
+第一种方式 通常项目目录是放在webapp下面的  Tomcat默认项目目录，如果不放在下面，则需要
+在sever.xml中<Host>标签下增加子标签<Context path="项目名" doBase="项目路径">  
+
+第二种方式
+在conf/catalana/localhost（如果没有此目录则可自己创建）下创建 名称.xml文件  此名称即应用名称
+在文件中编写<Context doBase="项目路径">
+
+Servlet
+  Servlet是javaWeb的三种组件（servlet。listener filter）之一，它属于动态资源，作用是处理请求，服务器会把接收到的请求交给Servlet
+来处理，servlet中通常需要
+	接收请求数据
+	处理请求
+	完成响应
+
+实现Servlet的方式
+三种方式
+	实现javax.servlet.Servlet接口
+	继承javax.servlet.GenericServlet类
+	继承javax.servlet.http.HTTPServlet类（通常使用这个）
+servlet中的方法大多数不由我们来调用，而是Tomcat来调用
+并且Servlet中对象也不由我们创建   由tomcat创建
+
+如何让浏览器访问servlet
+给Servlet指定一个servlet路径（让servlet和一个路径绑定在一起）在web.xml中对servlet配置
+浏览器访问路径
+
+生命周期
+init对象创建后执行 一次  service处理请求时执行 多次 destroy销毁之前执行 一次
+
+特性
+单例 一个类只有一个对象，当然可能存在多个servlet类
+线程是不安全的，所以效率是高的
+servlet由我们来写，但对象由服务器创建，并由服务器调用相应的方法
+
+ServletConfig
+一个ServletConfig对象，对应一段web.xml中servlet配置信息 
+API
+String gertServletName() 获取<servlet-name>中内容
+ServletContext getServletContext() 获取Servlet上下文对象
+String getInitParameter(String name) 通过名称获取指定初始化参数的值
+
+GenericServlet类
+是Servlet接口的实现类，可通过继承它来编写自己的servlet
+
+HttpServlet继承了GenericServlet
+里面有两个service 但参数不同
+tomcat通过类型强转使原始Servlet生命周期方法service中两个参数转换成HTTPServletRequest HTTPServletResponse
+调用void service(HTTPServletRequest HTTPServletResponse)
+它会通过request得到当前请求的请求方式  如GET  POST
+根据请求方式在调用doGet或doPost方法
+
+客户端-》service生命周期方法-》(通过参数强转) service(HTTPServletRequest HTTPServletResponse)-》获取请求方式-》调用doget或dopost
+doget或dopost由我们自己覆盖   如果没有覆盖但是却被调用了，则会出现405  
+
+Servlet细节
+单例 线程不安全 工作效率高
+不要在Servlet中创建成员 创建局部变量即可
+可以创建无状态成员
+可以创建有状态成员，但是必须为只读的
+
+一般是首次访问servlet时创建
+
+
+也可以设置服务器启动时创建
+在web.xml中<servlet>中配置<load-on-startup>0</load-on-startup>
+里面的数字代表启动的优先级  越小越优先
+
+<url-pattern>配置路径一定以/开头
+
+<servlet-mapping>中<url-pattern>可以配置多个url  表示可以通过多个路径访问到这个servlet
+
+路径可以使用通配符
+/*匹配到所有url
+*只能出现在两端  不能出现在中间 
+
+web文件的继承
+在conf/web.xml中的内容相当于写到了每个项目的web.xml中，他是所有web.xml的父文件
+
+servlet的配置文件由tomact反射技术形成对象 调用方法
+
+ServletContext
+概述 服务器会为每个应用创建一个ServletContext对象
+ServletContext对象的创建时在服务器启动时完成的
+ServletContext对象的销毁时在服务器关闭时完成的
+
+ServletContext对象作用  是在整个web应用的动态资源中共享数据
+例 在AServlet中向ServletContext中存一个值，后可在Bservlet中获取，共享数据
+
+一个项目只有一个ServletContext对象，可在N多个Servlet中获取这唯一的对象，可在多个Servlet中传递数据
+
+获取ServletContext的方式
+ServletConfig#ServletContext
+GenericServlet#ServletContext
+HTTPSession#ServletContext
+ServletContextEvent#ServletContext
+
+域对象的功能
+域对象就是用来在多个Servlet中传递数据
+域对象必须有存和取数据的功能
+域对象内部有一个Map，用来存数据
+
+ServletContext是javaweb四大域对象之一
+PageContext  一个jsp页面 ！这个域是在当前jsp页面和当前jsp页面中使用的标签之间共享数据
+ServletRequest 一个请求链
+HTTPSession  整个会话  一个会话只有一个用户
+ServletContext  整个应用程序
+
+获取应用初始化参数
+Servlet也可以获取初始化参数，但是是局部的参数，即一个Servlet只能获取自己的初始化
+参数，不能获取别人的，即初始化参数只为一个Servlet准备
+
+可以配置公共的初始化参数，为所有Servlet而用，需ServletContext才能
+
+获取资源
+获取真实路径 eclipse中DServlet
+
+获取类路径下资源
+	获取类路径资源，类路径对一个javaweb项目而言，就是/WEB-INF/classes 和 /WEB-INF/lib
+类路径src目录下创建的资源会复制到webroot下的web-inf下的classes中    .java变成.class 其他直接复制
+因为客户端访问webroot下的内容   不能访问src下的源码
+
+访问类路径下的资源
+1 得到ClassLoader  先得到class在得到ClassLoader
+调用getResourceAsStream  得到InputStream
+
+commons-io包  可以将流装换成字符串
+
+
+服务器处理请求的流程
+服务器每次收到请求，都会为这个请求开辟一个新的线程
+服务器把客户端的请求数据封装到request对象中，request就是请求数据的载体
+服务器还会创建response对象，向客户端发送响应
+
+response 类型为HttpServletResponse
+发送状态码
+sendError（int sc） 发送错误状态码，例如404等
+sendError（int sc，String mag） 发送错误状态码  携带信息
+setStatus（int sc ） 发送成功状态码  也可发送302
+
+发送响应头
+头就是一个键值对，可能存在一个一个头（一名一值或一名多值）
+setHeader（String name，String value）适用于单值的响应头
+
+response完成重定向
+response.setHeader("Location","/工程名/servlet名")
+response.setStatus(302)
+
+response禁用缓存
+response.setHeader（"Cache-Control","no-cache"）
+response.setHeader（"pragma","no-cache"）
+response.setDateHeader("expires",-1)
+
+
+响应体 通常是html或是图片
+response的两个流
+	ServletOutputStream getOutputStream（） 用来向客户端发送字节数据
+	PrintWriter getWriter（） 用来向客户端发送字符数据，需要设置编码
+	两个流不能同时使用
+
+request  封装了客户端所有的请求数据
+获取常用信息
+	获取客户端IP  request.getRemoteAddr（）
+	获取请求方式  request.getMethod()
+获取HTTP请求头
+String getHeader（String name）适用于单值头
+
+获取请求URL
+http://localhost:8080/ServletTest1/JServlet?username=xxx&password=xxx
+getQueryString（）  获取参数部分 即问号后面的 不含问号username=xxx&password=xxx
+getRequestURI（） 获取请求URI  即项目名+Servlet路径/ServletTest1/JServlet
+getRequestURL（） 获取请求URL  即不包含参数的整个请求路径http://localhost:8080/ServletTest1/JServlet
+等等  查API
+
+
+Refer请求头  能够知道请求来自哪个页面，但是如果在地址栏输入地址，就没有Refer请求头了
+还能够做统计工作  防盗链
+
+获取请求参数：请求参数是由客户端发送给服务器的，有可能在请求体中（post）有可能在url之后（Get）
+请求参数   一参数一值或多值
+String getParameter(String name) 获取指定名称的请求参数  适用于单值请求参数
+String getParameterValues(String name)取指定名称的请求参数  适用于多值请求参数
+Map<String,String []> getParameterMap  获取所有请求参数
+
+请求转发和请求包含
+RequestDispatcher rd=request.getRequestDispatcher("/MyServlet") 使用request获取getRequestDispatcher对象，参数是被转发或包含的Servlet路径
+请求转发 rd.forward(request,response)
+请求包含 rd.include(request,response)
+
+有时一个请求需要多个Servlet协作才能完成 所以需要在一个Servlet跳到另一个Servlet
+	一个请求跨多个Servlet，需要使用转发和包含
+	请求转发 由下一个Servlet完成响应体，当前Servlet可以设置响应头 无响应体（留头不留体）
+	请求包含，由两个Servlet共同完成响应体（都留）
+	无论是请求转发还是请求包含，都是在一个范围内，使用同一个request和response
+
+request域（应用在Servlet中传值）
+Servlet中三大域对象 request session application 都有如下三个方法
+void setAttribute(String name,Object value)
+void getAttribute(String name,Object)
+在同一请求范围内使用setAttribute和getAttribute来传值
+注意是同一个request
+例  重定向中两次请求 两个request  不在同一范围  无法传值
+
+
+请求转发和请求重定向的区别
+请求转发是一个请求一次响应，重定向是两次请求两次响应
+转发地址栏不变化，重定向显示后一个请求的地址
+转发只能转发到本项目其他Servlet  重定向还能到其他项目名
+转发是服务器端行为，只需给出转发的Servlet路径 重定向需给出ServletURI 即包含项目名
+请求转发效率高  一次请求
+需在下一个Servlet中获取request域中的数据，必须使用转发
+
+
+编码
+常见字符编码 iso-8859-1 不支持中文
+gbk系统默认编码 中国的国标码
+utf-8万国码  支持全世界编码
+
+
+URL编码
+表单的类型 Context-type:application/x-www-form-urlencoded 就是把中文装换成%后面跟随两位的16进制
+在客户端和服务器之间传递中文时需要把它转换成网络适合的方式
+
+它不是字符编码
+它是用来在客户端和服务器之间传递参数用的一种方式
+URL编码需要先指定一种字符编码，把字符串解码后，得到byte[]，然后把小于0的字节加上256，在转换成16进制，前面加一个%号
+POST请求默认使用URL编码，tomcat会自动使用url解码
+URL编码 
+		String s=URLEncoder.encode(name, "utf-8");
+		System.out.println(s);
+URL解码		
+		s=URLDecoder.decode(s,"utf-8");
+		System.out.println(s);
+
+
+BaseServlet
+我们希望在一个Servlet中可以有多个请求处理方
+客户端发送请求时 必须多给出一个参数 用来说明要调用的方法
+请求处理方法的签名必须与service相同，即返回值和参数 以及声明的异常都相同
+客户端必须传递名为method的参数 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
